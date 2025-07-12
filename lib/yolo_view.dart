@@ -376,18 +376,21 @@ class YOLOViewController {
   /// Parameters:
   /// - [modelPath]: Path to the new model file
   /// - [task]: The YOLO task type for the new model
+  /// - [useGpu]: Whether to use GPU acceleration (default: true)
   ///
   /// Example:
   /// ```dart
   /// await controller.switchModel(
   ///   'assets/models/yolov8s.mlmodel',
   ///   YOLOTask.segment,
+  ///   useGpu: false, // Force CPU inference
   /// );
   /// ```
   ///
   /// @param modelPath The path to the new model file
   /// @param task The task type for the new model
-  Future<void> switchModel(String modelPath, YOLOTask task) async {
+  /// @param useGpu Whether to use GPU acceleration
+  Future<void> switchModel(String modelPath, YOLOTask task, {bool useGpu = true}) async {
     if (_methodChannel == null || _viewId == null) {
       logInfo(
         'YoloViewController: Warning - Cannot switch model, view not yet created',
@@ -401,6 +404,7 @@ class YOLOViewController {
       await _methodChannel!.invokeMethod('setModel', {
         'modelPath': modelPath,
         'task': task.name,
+        'useGpu': useGpu,
       });
 
       logInfo(
@@ -662,6 +666,13 @@ class YOLOView extends StatefulWidget {
   /// Range: 0.0 to 1.0. Default is 0.45.
   final double iouThreshold;
 
+  /// Whether to use GPU acceleration for inference.
+  ///
+  /// When true (default), GPU acceleration will be used if available,
+  /// which can significantly improve performance. Set to false to force
+  /// CPU-only inference, which may be more stable on some devices.
+  final bool useGpu;
+
   const YOLOView({
     super.key,
     required this.modelPath,
@@ -676,6 +687,7 @@ class YOLOView extends StatefulWidget {
     this.streamingConfig,
     this.confidenceThreshold = 0.5,
     this.iouThreshold = 0.45,
+    this.useGpu = true,
   });
 
   @override
@@ -764,12 +776,13 @@ class YOLOViewState extends State<YOLOView> {
       });
     }
 
-    // Handle model or task changes
+    // Handle model, task, or GPU setting changes
     if (_platformViewId != null &&
         (oldWidget.modelPath != widget.modelPath ||
-            oldWidget.task != widget.task)) {
+            oldWidget.task != widget.task ||
+            oldWidget.useGpu != widget.useGpu)) {
       _effectiveController
-          .switchModel(widget.modelPath, widget.task)
+          .switchModel(widget.modelPath, widget.task, useGpu: widget.useGpu)
           .catchError((e) {
             logInfo('YoloView: Error switching model in didUpdateWidget: $e');
           });
@@ -1076,6 +1089,7 @@ class YOLOViewState extends State<YOLOView> {
       'iouThreshold': widget.iouThreshold,
       'numItemsThreshold': _effectiveController.numItemsThreshold,
       'viewId': _viewId,
+      'useGpu': widget.useGpu,
     };
 
     // Add streaming config to creation params if provided

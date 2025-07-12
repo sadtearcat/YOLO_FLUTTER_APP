@@ -113,11 +113,14 @@ class YOLO {
   /// This method allows switching to a different model without recreating the view.
   /// The view must be initialized (have a viewId) before calling this method.
   ///
+  /// The [useGpu] parameter controls whether to use GPU acceleration (default: true).
+  ///
   /// @param newModelPath The path to the new model
   /// @param newTask The task type for the new model
+  /// @param useGpu Whether to use GPU acceleration
   /// @throws [StateError] if the view is not initialized
   /// @throws [ModelLoadingException] if the model switch fails
-  Future<void> switchModel(String newModelPath, YOLOTask newTask) async {
+  Future<void> switchModel(String newModelPath, YOLOTask newTask, {bool useGpu = true}) async {
     if (_viewId == null) {
       throw StateError('Cannot switch model: view not initialized');
     }
@@ -127,6 +130,7 @@ class YOLO {
         'viewId': _viewId,
         'modelPath': newModelPath,
         'task': newTask.name,
+        'useGpu': useGpu,
       };
 
       // Only include instanceId for multi-instance mode
@@ -157,6 +161,9 @@ class YOLO {
   /// This method must be called before [predict] to initialize the model.
   /// Returns `true` if the model was loaded successfully, `false` otherwise.
   ///
+  /// The [useGpu] parameter controls whether to use GPU acceleration (default: true).
+  /// Set to false to use CPU-only inference.
+  ///
   /// Example:
   /// ```dart
   /// bool success = await yolo.loadModel();
@@ -165,11 +172,14 @@ class YOLO {
   /// } else {
   ///   print('Failed to load model');
   /// }
+  /// 
+  /// // Or disable GPU:
+  /// bool success = await yolo.loadModel(useGpu: false);
   /// ```
   ///
   /// @throws [ModelLoadingException] if the model file cannot be found
   /// @throws [PlatformException] if there's an issue with the platform-specific code
-  Future<bool> loadModel() async {
+  Future<bool> loadModel({bool useGpu = true}) async {
     if (!_isInitialized) {
       await _initializeInstance();
     }
@@ -178,6 +188,7 @@ class YOLO {
       final Map<String, dynamic> arguments = {
         'modelPath': modelPath,
         'task': task.name,
+        'useGpu': useGpu,
       };
 
       // Only include instanceId for multi-instance mode
