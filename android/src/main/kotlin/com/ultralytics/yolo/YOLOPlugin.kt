@@ -152,6 +152,7 @@ class YOLOPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandler
           var modelPath = args?.get("modelPath") as? String ?: "yolo11n"
           val taskString = args?.get("task") as? String ?: "detect"
           val instanceId = args?.get("instanceId") as? String ?: "default"
+          val useGpu = args?.get("useGpu") as? Boolean ?: true
           
           // Resolve the model path (handling absolute paths, internal:// scheme, or asset paths)
           modelPath = resolveModelPath(modelPath)
@@ -167,7 +168,8 @@ class YOLOPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandler
             instanceId = instanceId,
             context = applicationContext,
             modelPath = modelPath,
-            task = task
+            task = task,
+            useGpu = useGpu
           ) { loadResult ->
             if (loadResult.isSuccess) {
               Log.d(TAG, "Model loaded successfully: $modelPath for task: $task, instance: $instanceId")
@@ -363,6 +365,7 @@ class YOLOPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandler
           val viewId = args?.get("viewId") as? Int
           val modelPath = args?.get("modelPath") as? String
           val taskString = args?.get("task") as? String
+          val useGpu = args?.get("useGpu") as? Boolean ?: true
           
           if (viewId == null || modelPath == null || taskString == null) {
             result.error("bad_args", "Missing required arguments for setModel", null)
@@ -379,7 +382,7 @@ class YOLOPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandler
             val task = YOLOTask.valueOf(taskString.uppercase())
             
             // Call setModel on the YoloView
-            yoloView.setModel(resolvedPath, task) { success ->
+            yoloView.setModel(resolvedPath, task, useGpu) { success ->
               if (success) {
                 result.success(null)
               } else {

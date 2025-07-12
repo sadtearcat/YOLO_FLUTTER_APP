@@ -48,6 +48,7 @@ class YOLOInstanceManager {
         context: Context,
         modelPath: String,
         task: YOLOTask,
+        useGpu: Boolean = true,
         callback: (Result<Unit>) -> Unit
     ) {
         // Check if already loaded
@@ -68,10 +69,10 @@ class YOLOInstanceManager {
         
         try {
             // Get labels from model metadata or use default
-            val yolo = YOLO(context, modelPath, task)
+            val yolo = YOLO(context, modelPath, task, useGpu)
             instances[instanceId] = yolo
             loadingStates[instanceId] = false
-            Log.d(TAG, "Model loaded successfully for instance: $instanceId")
+            Log.d(TAG, "Model loaded successfully for instance: $instanceId (useGpu: $useGpu)")
             callback(Result.success(Unit))
         } catch (e: Exception) {
             loadingStates[instanceId] = false

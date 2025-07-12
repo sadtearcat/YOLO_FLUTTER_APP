@@ -46,6 +46,7 @@ class YOLOPlatformView(
         // as Dart side sets them via method channel after view creation.
         val confidenceParam = creationParams?.get("confidenceThreshold") as? Double ?: 0.5
         val iouParam = creationParams?.get("iouThreshold") as? Double ?: 0.45
+        val useGpuParam = creationParams?.get("useGpu") as? Boolean ?: true
 
         // Set up the method channel handler
         methodChannel?.setMethodCallHandler(this)
@@ -102,7 +103,7 @@ class YOLOPlatformView(
             }
             
             // Load model with the specified path and task
-            yoloView.setModel(modelPath, task)
+            yoloView.setModel(modelPath, task, useGpuParam)
             
             // Setup zoom callback
             yoloView.onZoomChanged = { zoomLevel ->
@@ -219,6 +220,7 @@ class YOLOPlatformView(
                 "setModel" -> {
                     val modelPath = call.argument<String>("modelPath")
                     val taskString = call.argument<String>("task")
+                    val useGpu = call.argument<Boolean>("useGpu") ?: true
                     
                     if (modelPath == null || taskString == null) {
                         result.error("invalid_args", "modelPath and task are required", null)
@@ -226,9 +228,9 @@ class YOLOPlatformView(
                     }
                     
                     val task = YOLOTask.valueOf(taskString.uppercase())
-                    Log.d(TAG, "Received setModel call with modelPath: $modelPath, task: $task")
+                    Log.d(TAG, "Received setModel call with modelPath: $modelPath, task: $task, useGpu: $useGpu")
                     
-                    yoloView.setModel(modelPath, task) { success ->
+                    yoloView.setModel(modelPath, task, useGpu) { success ->
                         if (success) {
                             Log.d(TAG, "Model switched successfully")
                             result.success(null)
@@ -444,11 +446,12 @@ class YOLOPlatformView(
          * Sets a new model on the YoloView
          * @param modelPath Path to the new model
          * @param task The YOLO task type
+         * @param useGpu Whether to use GPU acceleration (default: true)
          * @param callback Callback to report success/failure
          */
-        fun setModel(modelPath: String, task: YOLOTask, callback: ((Boolean) -> Unit)? = null) {
-            Log.d(TAG, "setModel called for viewId $viewId with model: $modelPath, task: $task")
-            yoloView.setModel(modelPath, task, callback)
+        fun setModel(modelPath: String, task: YOLOTask, useGpu: Boolean = true, callback: ((Boolean) -> Unit)? = null) {
+            Log.d(TAG, "setModel called for viewId $viewId with model: $modelPath, task: $task, useGpu: $useGpu")
+            yoloView.setModel(modelPath, task, useGpu, callback)
         }
     
     /**
