@@ -50,6 +50,82 @@ void main() {
       'viewId': 1,
       'modelPath': 'model.tflite',
       'task': 'detect',
+      'useGpu': true,
+    });
+  });
+
+  test('setModel calls method channel with useGpu=false argument', () async {
+    var called = false;
+    late MethodCall capturedCall;
+
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+          if (methodCall.method == 'setModel') {
+            called = true;
+            capturedCall = methodCall;
+          }
+          return null;
+        });
+
+    await platform.setModel(1, 'model.tflite', 'detect', useGpu: false);
+
+    expect(called, isTrue);
+    expect(capturedCall.method, 'setModel');
+    expect(capturedCall.arguments, {
+      'viewId': 1,
+      'modelPath': 'model.tflite',
+      'task': 'detect',
+      'useGpu': false,
+    });
+  });
+
+  test('setModel calls method channel with useGpu=true argument', () async {
+    var called = false;
+    late MethodCall capturedCall;
+
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+          if (methodCall.method == 'setModel') {
+            called = true;
+            capturedCall = methodCall;
+          }
+          return null;
+        });
+
+    await platform.setModel(1, 'model.tflite', 'detect', useGpu: true);
+
+    expect(called, isTrue);
+    expect(capturedCall.method, 'setModel');
+    expect(capturedCall.arguments, {
+      'viewId': 1,
+      'modelPath': 'model.tflite',
+      'task': 'detect',
+      'useGpu': true,
+    });
+  });
+
+  test('setModel uses default useGpu=true when not specified', () async {
+    var called = false;
+    late MethodCall capturedCall;
+
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+          if (methodCall.method == 'setModel') {
+            called = true;
+            capturedCall = methodCall;
+          }
+          return null;
+        });
+
+    await platform.setModel(1, 'model.tflite', 'detect');
+
+    expect(called, isTrue);
+    expect(capturedCall.method, 'setModel');
+    expect(capturedCall.arguments, {
+      'viewId': 1,
+      'modelPath': 'model.tflite',
+      'task': 'detect',
+      'useGpu': true,
     });
   });
 }

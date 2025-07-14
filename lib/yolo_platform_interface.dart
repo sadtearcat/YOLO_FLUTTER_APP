@@ -62,11 +62,12 @@ abstract class YOLOPlatform extends PlatformInterface {
   /// - [viewId]: The unique identifier of the YOLO view
   /// - [modelPath]: The path to the new model file
   /// - [task]: The YOLO task type for the new model
+  /// - [useGpu]: Whether to use GPU acceleration (defaults to true)
   ///
   /// Throws:
   /// - [UnimplementedError] if not implemented by the platform
   /// - Platform-specific exceptions if the model switch fails
-  Future<void> setModel(int viewId, String modelPath, String task) {
+  Future<void> setModel(int viewId, String modelPath, String task, {bool useGpu = true}) {
     throw UnimplementedError('setModel() has not been implemented.');
   }
 }

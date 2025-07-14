@@ -9,13 +9,13 @@ class MockYOLOPlatform with MockPlatformInterfaceMixin implements YOLOPlatform {
   Future<String?> getPlatformVersion() => Future.value('42');
 
   @override
-  Future<void> setModel(int viewId, String modelPath, String task) =>
+  Future<void> setModel(int viewId, String modelPath, String task, {bool useGpu = true}) =>
       Future.value();
 }
 
 class _UnimplementedYOLOPlatform extends YOLOPlatform {
   Future<String?> callPlatformVersion() => super.getPlatformVersion();
-  Future<void> callSetModel() => super.setModel(1, 'model.tflite', 'detect');
+  Future<void> callSetModel() => super.setModel(1, 'model.tflite', 'detect', useGpu: true);
 }
 
 class _FakePlatform implements YOLOPlatform {
@@ -23,7 +23,7 @@ class _FakePlatform implements YOLOPlatform {
   Future<String?> getPlatformVersion() => Future.value('fake');
 
   @override
-  Future<void> setModel(int viewId, String modelPath, String task) async {}
+  Future<void> setModel(int viewId, String modelPath, String task, {bool useGpu = true}) async {}
 }
 
 void main() {

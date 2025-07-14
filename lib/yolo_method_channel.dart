@@ -31,11 +31,12 @@ class YOLOMethodChannel extends YOLOPlatform {
   }
 
   @override
-  Future<void> setModel(int viewId, String modelPath, String task) async {
+  Future<void> setModel(int viewId, String modelPath, String task, {bool useGpu = true}) async {
     await methodChannel.invokeMethod<void>('setModel', {
       'viewId': viewId,
       'modelPath': modelPath,
       'task': task,
+      'useGpu': useGpu,
     });
   }
 }
