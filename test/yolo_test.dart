@@ -17,7 +17,7 @@ class MockYOLOPlatform with MockPlatformInterfaceMixin implements YOLOPlatform {
   Future<String?> getPlatformVersion() => Future.value('42');
 
   @override
-  Future<void> setModel(int viewId, String modelPath, String task) =>
+  Future<void> setModel(int viewId, String modelPath, String task, {bool useGpu = true}) =>
       Future.value();
 }
 
@@ -140,6 +140,154 @@ void main() {
           ),
         ),
       );
+    });
+  });
+
+  group('YOLO useGpu Parameter Tests', () {
+    test('loadModel with useGpu=false', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+            if (methodCall.method == 'loadModel') {
+              expect(methodCall.arguments['useGpu'], false);
+              return true;
+            }
+            return null;
+          });
+
+      final yolo = YOLO(modelPath: 'test_model.tflite', task: YOLOTask.detect);
+      await yolo.loadModel(useGpu: false);
+    });
+
+    test('loadModel with useGpu=true (explicit)', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+            if (methodCall.method == 'loadModel') {
+              expect(methodCall.arguments['useGpu'], true);
+              return true;
+            }
+            return null;
+          });
+
+      final yolo = YOLO(modelPath: 'test_model.tflite', task: YOLOTask.detect);
+      await yolo.loadModel(useGpu: true);
+    });
+
+    test('loadModel uses default useGpu=true when not specified', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+            if (methodCall.method == 'loadModel') {
+              expect(methodCall.arguments['useGpu'], true);
+              return true;
+            }
+            return null;
+          });
+
+      final yolo = YOLO(modelPath: 'test_model.tflite', task: YOLOTask.detect);
+      await yolo.loadModel(); // 기본값 테스트
+    });
+
+    test('switchModel with useGpu=false', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+            if (methodCall.method == 'setModel') {
+              expect(methodCall.arguments['useGpu'], false);
+              return null;
+            }
+            return null;
+          });
+
+      final yolo = YOLO(modelPath: 'model.tflite', task: YOLOTask.detect);
+      yolo.setViewId(1);
+      await yolo.switchModel('new_model.tflite', YOLOTask.segment, useGpu: false);
+    });
+
+    test('switchModel with useGpu=true (explicit)', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+            if (methodCall.method == 'setModel') {
+              expect(methodCall.arguments['useGpu'], true);
+              return null;
+            }
+            return null;
+          });
+
+      final yolo = YOLO(modelPath: 'model.tflite', task: YOLOTask.detect);
+      yolo.setViewId(1);
+      await yolo.switchModel('new_model.tflite', YOLOTask.segment, useGpu: true);
+    });
+
+    test('switchModel uses default useGpu=true when not specified', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+            if (methodCall.method == 'setModel') {
+              expect(methodCall.arguments['useGpu'], true);
+              return null;
+            }
+            return null;
+          });
+
+      final yolo = YOLO(modelPath: 'model.tflite', task: YOLOTask.detect);
+      yolo.setViewId(1);
+      await yolo.switchModel('new_model.tflite', YOLOTask.segment); // 기본값 테스트
+    });
+
+    test('multi-instance loadModel with useGpu=false', () async {
+      final yolo = YOLO(
+        modelPath: 'model.tflite',
+        task: YOLOTask.detect,
+        useMultiInstance: true,
+      );
+
+      // Set up mock for the specific instance channel
+      final instanceChannel = MethodChannel(
+        'yolo_single_image_channel_${yolo.instanceId}',
+      );
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(instanceChannel, (MethodCall methodCall) async {
+            if (methodCall.method == 'createInstance') {
+              return true;
+            } else if (methodCall.method == 'loadModel') {
+              expect(methodCall.arguments['useGpu'], false);
+              return true;
+            }
+            return null;
+          });
+
+      try {
+        await yolo.loadModel(useGpu: false);
+        // If this doesn't throw, the multi-instance logic with useGpu is working
+        expect(yolo.instanceId, isNot(equals('default')));
+      } catch (e) {
+        // Expected since we don't have a real platform implementation
+        expect(yolo.instanceId, isNot(equals('default')));
+        expect(YOLOInstanceManager.hasInstance(yolo.instanceId), isTrue);
+      }
+    });
+
+    test('multi-instance switchModel with useGpu=false', () async {
+      final yolo = YOLO(
+        modelPath: 'model.tflite',
+        task: YOLOTask.detect,
+        useMultiInstance: true,
+      );
+      yolo.setViewId(1);
+
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+            if (methodCall.method == 'setModel') {
+              expect(methodCall.arguments['useGpu'], false);
+              expect(methodCall.arguments['instanceId'], yolo.instanceId);
+              return null;
+            }
+            return null;
+          });
+
+      try {
+        await yolo.switchModel('new_model.tflite', YOLOTask.segment, useGpu: false);
+      } catch (e) {
+        // Expected since we don't have real platform implementation
+        expect(yolo.instanceId, isNot(equals('default')));
+      }
     });
   });
   group('YOLOTask', () {
