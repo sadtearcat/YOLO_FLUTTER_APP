@@ -3,6 +3,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ultralytics_yolo/yolo_view.dart';
+import 'package:ultralytics_yolo/yolo_task.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -19,9 +20,9 @@ void main() {
       // Controller methods will handle missing channel gracefully
     });
 
-    tearDown(() {
+    tearDown() {
       // No cleanup needed since we don't mock channels
-    });
+    }
 
     test('default values are set correctly', () {
       expect(controller.confidenceThreshold, 0.5);
@@ -91,5 +92,78 @@ void main() {
         expect(() => uninitializedController.switchCamera(), returnsNormally);
       },
     );
+  });
+
+  group('YOLOViewController useGpu Tests', () {
+    late YOLOViewController controller;
+    const MethodChannel testChannel = MethodChannel('test_yolo_controller');
+    final List<MethodCall> log = <MethodCall>[];
+
+    setUp(() {
+      controller = YOLOViewController();
+      log.clear();
+
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(testChannel, (MethodCall methodCall) async {
+            log.add(methodCall);
+            return null;
+          });
+
+      controller.init(testChannel, 1);
+    });
+
+    tearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(testChannel, null);
+    });
+
+    test('switchModel with useGpu=false', () async {
+      await controller.switchModel('test_model.tflite', YOLOTask.detect, useGpu: false);
+
+      expect(log.any((call) => call.method == 'setModel'), isTrue);
+      final setModelCall = log.firstWhere((call) => call.method == 'setModel');
+      expect(setModelCall.arguments['modelPath'], 'test_model.tflite');
+      expect(setModelCall.arguments['task'], 'detect');
+      expect(setModelCall.arguments['useGpu'], false);
+    });
+
+    test('switchModel with useGpu=true (explicit)', () async {
+      await controller.switchModel('test_model.tflite', YOLOTask.segment, useGpu: true);
+
+      expect(log.any((call) => call.method == 'setModel'), isTrue);
+      final setModelCall = log.firstWhere((call) => call.method == 'setModel');
+      expect(setModelCall.arguments['useGpu'], true);
+    });
+
+    test('switchModel uses default useGpu=true when not specified', () async {
+      await controller.switchModel('test_model.tflite', YOLOTask.pose);
+
+      expect(log.any((call) => call.method == 'setModel'), isTrue);
+      final setModelCall = log.firstWhere((call) => call.method == 'setModel');
+      expect(setModelCall.arguments['useGpu'], true);
+    });
+
+    test('switchModel with different tasks and useGpu values', () async {
+      // Test multiple combinations
+      await controller.switchModel('model1.tflite', YOLOTask.detect, useGpu: false);
+      await controller.switchModel('model2.tflite', YOLOTask.segment, useGpu: true);
+      await controller.switchModel('model3.tflite', YOLOTask.classify); // default
+
+      expect(log.where((call) => call.method == 'setModel').length, 3);
+      
+      final calls = log.where((call) => call.method == 'setModel').toList();
+      expect(calls[0].arguments['useGpu'], false);
+      expect(calls[1].arguments['useGpu'], true);
+      expect(calls[2].arguments['useGpu'], true); // default
+    });
+
+    test('switchModel without initialization handles gracefully', () async {
+      final uninitializedController = YOLOViewController();
+
+      expect(
+        () => uninitializedController.switchModel('model.tflite', YOLOTask.detect, useGpu: false),
+        returnsNormally,
+      );
+    });
   });
 }
