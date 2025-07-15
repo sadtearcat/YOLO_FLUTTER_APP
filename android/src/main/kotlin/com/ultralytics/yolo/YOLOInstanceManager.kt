@@ -69,7 +69,7 @@ class YOLOInstanceManager {
         
         try {
             // Get labels from model metadata or use default
-            val yolo = YOLO(context, modelPath, task, emptyList(), useGpu)
+            val yolo = YOLO(context, modelPath, task, useGpu = useGpu)
             instances[instanceId] = yolo
             loadingStates[instanceId] = false
             Log.d(TAG, "Model loaded successfully for instance: $instanceId (useGpu: $useGpu)")
