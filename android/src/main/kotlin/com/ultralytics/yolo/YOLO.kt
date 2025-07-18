@@ -41,13 +41,14 @@ class YOLO(
                 // Use all available CPU cores for maximum parallelism
                 setNumThreads(Runtime.getRuntime().availableProcessors())
                 
-                // Allow FP16 precision for faster computation
-                setAllowFp16PrecisionForFp32(true)
+                // Allow FP16 precision only when using GPU for performance
+                // Force FP32 precision in CPU mode to ensure accuracy consistency
+                setAllowFp16PrecisionForFp32(useGpu)
                 
                 // useGpu is handled in individual predictors
                 
                 // Log configuration
-                Log.d(TAG, "Interpreter options: threads=${Runtime.getRuntime().availableProcessors()}, FP16 enabled")
+                Log.d(TAG, "Interpreter options: threads=${Runtime.getRuntime().availableProcessors()}, FP16=${useGpu}")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error creating interpreter options: ${e.message}")

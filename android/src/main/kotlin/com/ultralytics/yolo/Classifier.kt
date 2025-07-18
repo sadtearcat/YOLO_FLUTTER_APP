@@ -30,6 +30,7 @@ class Classifier(
 ) : BasePredictor() {
 
     private val interpreterOptions: Interpreter.Options = Interpreter.Options().apply {
+        setAllowFp16PrecisionForFp32(useGpu)  // Allow FP16 only when using GPU
         if (useGpu) {
             try {
                 addDelegate(GpuDelegate())
